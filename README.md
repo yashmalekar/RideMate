@@ -1,25 +1,10 @@
-# Welcome to your Lovable project
-
-## Project info
-
-**URL**: https://lovable.dev/projects/b90fb19b-2eb6-4180-a01a-746a268eea1f
+# Welcome to RideMate
+- Built a full-stack mobile app for tracking bike expenses, ride stats, and social features.
+- Developed backend using AWS Lambda, API Gateway, and DynamoDB.
+- Implemented authentication via AWS Cognito and
+- Designed modern UI using React & Tailwind.
 
 ## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/b90fb19b-2eb6-4180-a01a-746a268eea1f) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
 Follow these steps:
 
 ```sh
@@ -59,12 +44,7 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/b90fb19b-2eb6-4180-a01a-746a268eea1f) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
+- AWS Services
 
 Yes, you can!
 
