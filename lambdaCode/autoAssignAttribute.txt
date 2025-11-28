@@ -1,0 +1,34 @@
+import {
+  CognitoIdentityProviderClient,
+  AdminUpdateUserAttributesCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
+
+const client = new CognitoIdentityProviderClient({});
+
+export const handler = async (event) => {
+  console.log("Trigger event:", JSON.stringify(event, null, 2));
+
+  if (event.triggerSource === "PostConfirmation_ConfirmSignUp") {
+    const userPoolId = event.userPoolId;
+    const username = event.userName;
+
+    try {
+      const command = new AdminUpdateUserAttributesCommand({
+        UserPoolId: userPoolId,
+        Username: username,
+        UserAttributes: [
+          { Name: "custom:bikeModel", Value: "" },
+          { Name: "custom:city", Value: "" },
+          { Name: "custom:ridingExperience", Value: "0" },
+        ],
+      });
+
+      await client.send(command);
+      console.log("✅ Custom attributes initialized for:", username);
+    } catch (error) {
+      console.error("❌ Error updating attributes:", error);
+    }
+  }
+
+  return event;
+};

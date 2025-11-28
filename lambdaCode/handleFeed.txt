@@ -1,0 +1,134 @@
+import {
+  DynamoDBClient
+} from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  ScanCommand,
+  DeleteCommand,
+  GetCommand,
+  UpdateCommand
+} from "@aws-sdk/lib-dynamodb";
+
+// Initialize DynamoDB client
+const client = new DynamoDBClient({ region: "ap-south-1" });
+const docClient = DynamoDBDocumentClient.from(client);
+
+const tableName = "socialFeed";
+
+export const handler = async (event) => {
+  console.log("Event:", event);
+
+  try {
+    const method = event.httpMethod || event.requestContext?.http?.method;
+    const body = event.body ? JSON.parse(event.body) : null;
+
+    // ---------- CREATE (POST) ----------
+    if (method === "POST") {
+      const { id, author, media, content, likes, comments, timestamp } = body;
+
+      if (!id || !author || !content) {
+        return sendResponse(400, { message: "id, author, and content are required" });
+      }
+
+      const post = {
+        id,
+        author,
+        content,
+        media: media || null,
+        likes: likes ?? 0,
+        comments: comments ?? [],
+        timestamp: timestamp || new Date().toISOString(),
+      };
+
+      await docClient.send(new PutCommand({
+        TableName: tableName,
+        Item: post,
+      }));
+
+      return sendResponse(200, { message: "Post created successfully", post });
+    }
+
+    // ---------- READ (GET) ----------
+    if (method === "GET") {
+      const id = event.queryStringParameters?.id;
+
+      if (id) {
+        // Get specific post by id
+        const data = await docClient.send(new GetCommand({
+          TableName: tableName,
+          Key: { id },
+        }));
+
+        if (!data.Item) {
+          return sendResponse(404, { message: "Post not found" });
+        }
+
+        return sendResponse(200, data.Item);
+      } else {
+        // Get all posts
+        const data = await docClient.send(new ScanCommand({ TableName: tableName }));
+        return sendResponse(200, data.Items || []);
+      }
+    }
+
+    // ---------- DELETE (DELETE) ----------
+    if (method === "DELETE") {
+      const { id } = body || {};
+      if (!id) return sendResponse(400, { message: "id is required" });
+
+      await docClient.send(new DeleteCommand({
+        TableName: tableName,
+        Key: { id },
+      }));
+
+      return sendResponse(200, { message: "Post deleted successfully" });
+    }
+
+    // ---------- UPDATE (PUT) ----------
+if (method === "PUT") {
+  const { id, ...updates } = body;
+  if (!id) return sendResponse(400, { message: "id is required" });
+
+  const updateExp = [];
+  const exprAttrNames = {};
+  const exprAttrValues = {};
+
+  for (const key in updates) {
+    updateExp.push(`#${key} = :${key}`);
+    exprAttrNames[`#${key}`] = key;
+    exprAttrValues[`:${key}`] = updates[key];
+  }
+
+  await docClient.send(new UpdateCommand({
+    TableName: tableName,
+    Key: { id },
+    UpdateExpression: `set ${updateExp.join(", ")}`,
+    ExpressionAttributeNames: exprAttrNames,
+    ExpressionAttributeValues: exprAttrValues,
+    ReturnValues: "UPDATED_NEW",
+  }));
+
+  return sendResponse(200, { message: "Post updated successfully" });
+}
+
+
+    // ---------- UNKNOWN METHOD ----------
+    return sendResponse(405, { message: "Method not allowed" });
+
+  } catch (error) {
+    console.error("Error:", error);
+    return sendResponse(500, { message: "Internal server error", error: error.message });
+  }
+};
+
+// ✅ Helper for consistent CORS responses
+const sendResponse = (statusCode, body) => ({
+  statusCode,
+  headers: {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  },
+  body: JSON.stringify(body),
+});

@@ -1,0 +1,20 @@
+/**
+ * Pre Sign-up Lambda Trigger for Cognito
+ * Automatically confirms users and marks their email as verified.
+ */
+export const handler = async (event) => {
+  // ✅ Automatically confirm the user
+  event.response.autoConfirmUser = true;
+
+  // ✅ Automatically verify the email if provided
+  if (event.request.userAttributes.hasOwnProperty("email")) {
+    event.response.autoVerifyEmail = true;
+  }
+
+  // (Optional) Automatically verify phone number if provided
+  if (event.request.userAttributes.hasOwnProperty("phone_number")) {
+    event.response.autoVerifyPhone = true;
+  }
+
+  return event;
+};

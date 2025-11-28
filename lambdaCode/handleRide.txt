@@ -1,0 +1,116 @@
+import {
+  DynamoDBClient
+} from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  ScanCommand,
+  UpdateCommand,
+  DeleteCommand
+} from "@aws-sdk/lib-dynamodb";
+
+// Initialize DynamoDB client
+const client = new DynamoDBClient({ region: "ap-south-1" });
+const docClient = DynamoDBDocumentClient.from(client);
+
+const tableName = "rideStats";
+
+export const handler = async (event) => {
+  console.log("Event:", event);
+
+  try {
+    const method = event.httpMethod || event.requestContext?.http?.method;
+    const body = event.body ? JSON.parse(event.body) : null;
+
+    // ---------- CREATE (POST) ----------
+    if (method === "POST") {
+      const { id, userId, startLocation, destination, distance, duration, date, notes } = body;
+
+      if (!id || !userId) {
+        return sendResponse(400, { message: "id and userId are required" });
+      }
+
+      const ride = {
+        id,
+        userId,
+        startLocation,
+        destination,
+        distance: Number(distance),
+        duration: Number(duration),
+        date,
+        ...(notes ? { notes } : {}),
+      };
+
+      await docClient.send(new PutCommand({
+        TableName: tableName,
+        Item: ride,
+      }));
+
+      return sendResponse(200, { message: "Ride added successfully", ride });
+    }
+
+    // ---------- READ (GET) ----------
+    if (method === "GET") {
+      const data = await docClient.send(new ScanCommand({ TableName: tableName }));
+      return sendResponse(200, data.Items || []);
+    }
+
+    // ---------- UPDATE (PUT) ----------
+    if (method === "PUT") {
+      const { id, ...updates } = body;
+      if (!id) return sendResponse(400, { message: "id is required" });
+
+      const updateExp = [];
+      const exprAttrNames = {};
+      const exprAttrValues = {};
+
+      for (const key in updates) {
+        updateExp.push(`#${key} = :${key}`);
+        exprAttrNames[`#${key}`] = key;
+        exprAttrValues[`:${key}`] = updates[key];
+      }
+
+      await docClient.send(new UpdateCommand({
+        TableName: tableName,
+        Key: { id },
+        UpdateExpression: `set ${updateExp.join(", ")}`,
+        ExpressionAttributeNames: exprAttrNames,
+        ExpressionAttributeValues: exprAttrValues,
+        ReturnValues: "UPDATED_NEW",
+      }));
+
+      return sendResponse(200, { message: "Ride updated successfully" });
+    }
+
+    // ---------- DELETE (DELETE) ----------
+    if (method === "DELETE") {
+      const { id } = body;
+      if (!id) return sendResponse(400, { message: "id is required" });
+
+      await docClient.send(new DeleteCommand({
+        TableName: tableName,
+        Key: { id },
+      }));
+
+      return sendResponse(200, { message: "Ride deleted successfully" });
+    }
+
+    // ---------- UNKNOWN METHOD ----------
+    return sendResponse(405, { message: "Method not allowed" });
+
+  } catch (error) {
+    console.error("Error:", error);
+    return sendResponse(500, { message: "Internal server error", error: error.message });
+  }
+};
+
+// ✅ Helper for consistent CORS responses
+const sendResponse = (statusCode, body) => ({
+  statusCode,
+  headers: {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  },
+  body: JSON.stringify(body),
+});

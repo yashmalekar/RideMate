@@ -1,0 +1,8 @@
+Create a Table in DynamoDB for Expenses
+Create a Lambda Function to handle CRUD operation for Expenses table(copy the function from handleExpenses.txt)
+Go to IAM-> Roles and locate the lambda's IAM role and attach DynamoDBFullAccess policy to it.
+Create API Gateway and create routes to handle GET, PUSH, PUT and DELETE data and integrate the lambda function to each route.
+Go to Cors in API Gateway and enter following fields:-
+Access-Control-Allow-Origin:- *
+Access-Control-Allow-Methods:- GET, POST, PUT,DELETE,OPTIONS
+Access-Control-Allow-Headers:- content-type
